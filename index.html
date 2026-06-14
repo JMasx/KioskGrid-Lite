@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>HA Wall Panel</title>
+
+<style>
+body {
+    margin: 0;
+    padding: 18px;
+    background: #0b0d10;
+    color: #fff;
+    font-family: Arial;
+    overflow: hidden;
+}
+
+header {
+    margin-bottom: 12px;
+    font-size: 18px;
+    border-bottom: 1px solid #222;
+    padding-bottom: 10px;
+}
+
+.grid {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 70px);
+}
+
+.item {
+    position: absolute;
+    width: 220px;
+    height: 130px;
+}
+
+.item-content {
+    width: 100%;
+    height: 100%;
+    background: #111622;
+    border-radius: 16px;
+    border: 1px solid #1f293d;
+    padding: 12px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: 0.2s;
+}
+
+.item-content.active {
+    opacity: 1;
+    border-color: #10b981;
+    box-shadow: 0 0 12px rgba(16,185,129,0.2);
+}
+
+.top-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #444;
+    margin-bottom: 10px;
+}
+
+.item-content.active .top-dot {
+    background: #10b981;
+}
+
+.title {
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.state {
+    font-size: 11px;
+    color: #888;
+}
+</style>
+</head>
+
+<body>
+
+<header>Home Assistant Panel (Debug Mode)</header>
+
+<div class="grid" id="grid"></div>
+
+<script src="muuri.min.js"></script>
+<script src="config.js"></script>
+<script>
+
+var HA_URL = HA_CONFIG.url;
+var HA_TOKEN = HA_CONFIG.token;
+
+var grid;
+var ENTITY_LIST = [];
+var STATE_MAP = {};
+
+/* ========================= */
+window.onload = function () {
+
+    setTimeout(function () {
+
+        grid = new Muuri("#grid", {
+            dragEnabled: true,
+            dragSortInterval: 50
+        });
+
+        loadEntities();
+
+        setInterval(syncStates, 4000);
+
+    }, 300);
+};
+
+/* =========================
+   LOAD REAL ENTITIES
+========================= */
+function loadEntities() {
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", HA_URL + "/api/states", true);
+    xhr.setRequestHeader("Authorization", "Bearer " + HA_TOKEN);
+
+    xhr.onreadystatechange = function () {
+
+        if (xhr.readyState !== 4) return;
+
+        if (xhr.status !== 200) {
+            console.log("HA ERROR:", xhr.status, xhr.responseText);
+            return;
+        }
+
+        try {
+
+            var data = JSON.parse(xhr.responseText);
+
+            ENTITY_LIST = [];
+
+            for (var i = 0; i < data.length; i++) {
+
+                var e = data[i];
+                var domain = e.entity_id.split(".")[0];
+
+                if (
+                    domain === "light" ||
+                    domain === "switch" ||
+                    domain === "input_boolean"
+                ) {
+                    ENTITY_LIST.push(e);
+                }
+
+                STATE_MAP[e.entity_id] = e.state;
+            }
+
+            render();
+
+        } catch (e) {
+            console.log("PARSE ERROR", e);
+        }
+    };
+
+    xhr.send();
+}
+
+/* =========================
+   RENDER UI
+========================= */
+function render() {
+
+    grid.remove(grid.getItems());
+
+    for (var i = 0; i < ENTITY_LIST.length; i++) {
+
+        var e = ENTITY_LIST[i];
+
+        var state = STATE_MAP[e.entity_id] || "unknown";
+
+        var el = document.createElement("div");
+        el.className = "item";
+        el.setAttribute("data-entity", e.entity_id);
+
+        var isOn = (state === "on");
+
+        el.innerHTML =
+            '<div class="item-content ' + (isOn ? "active" : "") + '" onclick="toggle(\'' + e.entity_id + '\')">' +
+                '<div class="top-dot"></div>' +
+                '<div class="title">' + (e.attributes.friendly_name || e.entity_id) + '</div>' +
+                '<div class="state">' + state.toUpperCase() + '</div>' +
+            '</div>';
+
+        grid.add(el);
+    }
+
+    grid.layout();
+}
+
+/* =========================
+   TOGGLE ENTITY
+========================= */
+function toggle(entity) {
+
+    var domain = entity.split(".")[0];
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", HA_URL + "/api/services/" + domain + "/toggle", true);
+
+    xhr.setRequestHeader("Authorization", "Bearer " + HA_TOKEN);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.send(JSON.stringify({
+        entity_id: entity
+    }));
+}
+
+/* =========================
+   LIVE SYNC STATES
+========================= */
+function syncStates() {
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", HA_URL + "/api/states", true);
+    xhr.setRequestHeader("Authorization", "Bearer " + HA_TOKEN);
+
+    xhr.onreadystatechange = function () {
+
+        if (xhr.readyState !== 4 || xhr.status !== 200) return;
+
+        try {
+
+            var data = JSON.parse(xhr.responseText);
+
+            for (var i = 0; i < data.length; i++) {
+                STATE_MAP[data[i].entity_id] = data[i].state;
+            }
+
+            updateUI();
+
+        } catch (e) {}
+    };
+
+    xhr.send();
+}
+
+/* =========================
+   UPDATE ONLY TEXT (FAST)
+========================= */
+function updateUI() {
+
+    var items = document.querySelectorAll(".item");
+
+    for (var i = 0; i < items.length; i++) {
+
+        var el = items[i];
+        var entity = el.getAttribute("data-entity");
+
+        var state = STATE_MAP[entity];
+        if (!state) continue;
+
+        var content = el.querySelector(".item-content");
+        var label = el.querySelector(".state");
+
+        if (state === "on") {
+            content.classList.add("active");
+        } else {
+            content.classList.remove("active");
+        }
+
+        label.innerHTML = state.toUpperCase();
+    }
+}
+
+</script>
+
+</body>
+</html>
