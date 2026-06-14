@@ -3,143 +3,115 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>HA Wall Panel</title>
+<title>Panel</title>
 <style>
 
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     background: #0b0d10;
     color: #fff;
     font-family: Arial, sans-serif;
-    padding: 12px;
-    overflow: hidden;
     height: 100vh;
+    overflow: hidden;
+    padding: 12px;
 }
 
 /* ---- HEADER ---- */
 header {
-    display: -webkit-box;
-    display: -webkit-flex;
     display: flex;
-    -webkit-box-pack: justify;
-    -webkit-justify-content: space-between;
     justify-content: space-between;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
     align-items: center;
-    margin-bottom: 8px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #1a2030;
+    height: 36px;
+    margin-bottom: 10px;
 }
 
 .header-left {
-    font-size: 14px;
-    color: #aaa;
+    font-size: 13px;
+    color: #3a4560;
+    white-space: nowrap;
+    margin-right: 10px;
+    flex-shrink: 0;
 }
 
-.header-right {
-    display: -webkit-box;
-    display: -webkit-flex;
+/* grid selector — slides in from right, lives in header row */
+.grid-selector {
     display: flex;
-    gap: 6px;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
+    gap: 5px;
     align-items: center;
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    transition: max-width 0.2s ease, opacity 0.15s ease;
+    flex-shrink: 1;
+    margin-right: 0;
 }
 
-#grid-label {
-    font-size: 11px;
-    color: #444;
+.grid-selector.open {
+    max-width: 400px;
+    opacity: 1;
+    margin-right: 8px;
 }
 
-/* ---- BUTTONS ---- */
-.btn {
+.gbtn {
     background: #111622;
     border: 1px solid #1f293d;
-    color: #aaa;
-    padding: 5px 10px;
-    border-radius: 8px;
-    font-size: 11px;
+    color: #555;
+    padding: 4px 9px;
+    border-radius: 6px;
+    font-size: 10px;
     cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-.btn.locked {
+.gbtn.sel {
     border-color: #10b981;
     color: #10b981;
 }
 
-/* ---- PRESET BAR ---- */
-#preset-bar {
-    display: none;
-    -webkit-flex-wrap: wrap;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 8px;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
-    align-items: center;
-}
-
-#preset-bar.visible {
-    display: -webkit-box;
-    display: -webkit-flex;
+/* right side buttons */
+.header-right {
     display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
 }
 
-.preset-label {
-    font-size: 11px;
-    color: #444;
-    margin-right: 2px;
-}
-
-.preset-btn {
+.hbtn {
     background: #111622;
     border: 1px solid #1f293d;
     color: #555;
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 5px 10px;
+    border-radius: 8px;
     font-size: 11px;
     cursor: pointer;
+    white-space: nowrap;
 }
 
-.preset-btn.selected {
+.hbtn.active {
     border-color: #10b981;
     color: #10b981;
 }
 
 /* ---- GRID ---- */
 #grid {
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: -ms-grid;
     display: grid;
     gap: 8px;
-    width: 100%;
-    /* height set by JS to fill remaining space */
-    -webkit-align-content: start;
-    align-content: start;
 }
 
 /* ---- SLOT ---- */
 .slot {
     border-radius: 12px;
-    border: 1px dashed #181e2a;
-    background: #0d1117;
-    /* height set by JS */
     position: relative;
-    -webkit-transition: border-color .12s, background .12s;
-    transition: border-color .12s, background .12s;
 }
 
 .slot.drag-over {
-    border-color: #10b981;
-    background: #0b1a13;
+    background: #0a1a12;
 }
 
 /* ---- CARD ---- */
@@ -150,45 +122,32 @@ header {
     border-radius: 12px;
     border: 1px solid #1f293d;
     padding: 10px;
-    display: -webkit-box;
-    display: -webkit-flex;
     display: flex;
-    -webkit-box-orient: vertical;
-    -webkit-flex-direction: column;
     flex-direction: column;
     cursor: pointer;
-    -webkit-transition: border-color .12s, opacity .12s;
-    transition: border-color .12s, opacity .12s;
     -webkit-user-select: none;
     user-select: none;
-    overflow: hidden;
 }
 
 .card.on {
     border-color: #10b981;
-    -webkit-box-shadow: 0 0 10px rgba(16,185,129,.18);
-    box-shadow: 0 0 10px rgba(16,185,129,.18);
 }
 
 .card.draggable {
-    cursor: -webkit-grab;
     cursor: grab;
     border-style: dashed;
-    opacity: 0.85;
 }
 
 .card.dragging {
-    opacity: 0.4;
+    opacity: 0.35;
 }
 
-/* ---- CARD INTERNALS ---- */
 .dot {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #2a2a2a;
+    background: #252d3e;
     margin-bottom: 8px;
-    -webkit-flex-shrink: 0;
     flex-shrink: 0;
 }
 
@@ -198,31 +157,32 @@ header {
 
 .card-name {
     font-size: 11px;
-    color: #ccc;
-    margin-bottom: 3px;
+    color: #8090b0;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    -webkit-flex: 1;
     flex: 1;
+    margin-bottom: 3px;
+}
+
+.card.on .card-name {
+    color: #ccc;
 }
 
 .card-state {
     font-size: 10px;
-    color: #444;
+    color: #2a3348;
 }
 
 .card.on .card-state {
     color: #10b981;
 }
 
-/* ---- EMPTY SLOT INDICATOR ---- */
-.slot-empty {
+.empty-plus {
     position: absolute;
     top: 50%; left: 50%;
-    -webkit-transform: translate(-50%, -50%);
-    transform: translate(-50%, -50%);
-    font-size: 18px;
+    transform: translate(-50%,-50%);
+    font-size: 16px;
     color: #1a2030;
     pointer-events: none;
 }
@@ -232,75 +192,50 @@ header {
 <body>
 
 <header>
-    <div class="header-left">Home Assistant Panel</div>
+    <div class="header-left">KioskGrid Lite</div>
+
+    <!-- grid preset row — slides open in edit mode -->
+    <div class="grid-selector" id="gridSelector">
+        <button class="gbtn" onclick="setGrid(2,3)">2x3</button>
+        <button class="gbtn" onclick="setGrid(3,3)">3x3</button>
+        <button class="gbtn sel" onclick="setGrid(4,4)">4x4</button>
+        <button class="gbtn" onclick="setGrid(5,4)">5x4</button>
+        <button class="gbtn" onclick="setGrid(5,5)">5x5</button>
+        <button class="gbtn" onclick="setGrid(6,4)">6x4</button>
+        <button class="gbtn" onclick="setGrid(6,5)">6x5</button>
+    </div>
+
     <div class="header-right">
-        <span id="grid-label">4×4</span>
-        <button class="btn" id="editBtn" onclick="toggleEdit()">Edit Layout</button>
+        <button class="hbtn" id="editBtn" onclick="toggleEdit()">Edit Layout</button>
     </div>
 </header>
 
-<div id="preset-bar">
-    <span class="preset-label">Grid:</span>
-    <button class="preset-btn" onclick="setGrid(2,3)">2×3</button>
-    <button class="preset-btn" onclick="setGrid(3,3)">3×3</button>
-    <button class="preset-btn selected" onclick="setGrid(4,4)">4×4</button>
-    <button class="preset-btn" onclick="setGrid(5,4)">5×4</button>
-    <button class="preset-btn" onclick="setGrid(5,5)">5×5</button>
-    <button class="preset-btn" onclick="setGrid(6,4)">6×4</button>
-    <button class="preset-btn" onclick="setGrid(6,5)">6×5</button>
-</div>
-
 <div id="grid"></div>
 
-<!-- load your config file which must expose window.HA_CONFIG = { url: "...", token: "..." } -->
 <script src="config.js"></script>
-
 <script>
 
-/* ============================================================
-   CONFIG
-============================================================ */
 var HA_URL   = (typeof HA_CONFIG !== "undefined") ? HA_CONFIG.url   : "";
 var HA_TOKEN = (typeof HA_CONFIG !== "undefined") ? HA_CONFIG.token : "";
 
-/* ============================================================
-   STATE
-============================================================ */
-var COLS = 4;
-var ROWS = 4;
+var COLS = 4, ROWS = 4;
 var editMode = false;
 var dragSrcSlot = null;
-
-/*
-  layout[] — one entry per grid slot (COLS * ROWS total).
-  Each value is either:
-    null          → empty slot
-    entity_id str → which entity sits here
-*/
 var layout = [];
-
-/*
-  entities{} — keyed by entity_id
-    { id, name, state, domain }
-*/
 var entities = {};
 
-/* ============================================================
-   BOOT
-============================================================ */
+/* ---- BOOT ---- */
 window.onload = function () {
     loadEntities();
     setInterval(syncStates, 5000);
 };
 
-/* ============================================================
-   LAYOUT HELPERS
-============================================================ */
-function initLayout(entityIds) {
+/* ---- LAYOUT HELPERS ---- */
+function initLayout(ids) {
     var total = COLS * ROWS;
     layout = [];
     for (var i = 0; i < total; i++) {
-        layout.push(i < entityIds.length ? entityIds[i] : null);
+        layout.push(i < ids.length ? ids[i] : null);
     }
 }
 
@@ -315,86 +250,63 @@ function loadSavedLayout() {
     try {
         var g = localStorage.getItem("ha_grid");
         if (g) {
-            var parsed = JSON.parse(g);
-            COLS = parsed.cols || 4;
-            ROWS = parsed.rows || 4;
-            document.getElementById("grid-label").textContent = COLS + "×" + ROWS;
-            updatePresetButtons();
+            var p = JSON.parse(g);
+            COLS = p.cols || 4;
+            ROWS = p.rows || 4;
+            gridButtonUpdater();
         }
         var l = localStorage.getItem("ha_layout_" + COLS + "x" + ROWS);
-        if (l) {
-            layout = JSON.parse(l);
-            return true;
-        }
+        if (l) { layout = JSON.parse(l); return true; }
     } catch(e) {}
     return false;
 }
 
-/* ============================================================
-   ENTITY LOAD
-============================================================ */
+/* ---- LOAD ENTITIES ---- */
 function loadEntities() {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", HA_URL + "/api/states", true);
     xhr.setRequestHeader("Authorization", "Bearer " + HA_TOKEN);
-
     xhr.onreadystatechange = function () {
-        if (xhr.readyState !== 4) return;
-        if (xhr.status !== 200) {
-            console.error("HA load error:", xhr.status);
-            return;
-        }
-
+        if (xhr.readyState !== 4 || xhr.status !== 200) return;
         var data = JSON.parse(xhr.responseText);
         var ordered = [];
-
         for (var i = 0; i < data.length; i++) {
             var e = data[i];
-            var domain = e.entity_id.split(".")[0];
-            if (domain === "light" || domain === "switch" || domain === "input_boolean") {
+            var d = e.entity_id.split(".")[0];
+            if (d === "light" || d === "switch" || d === "input_boolean") {
                 entities[e.entity_id] = {
-                    id:     e.entity_id,
-                    name:   e.attributes.friendly_name || e.entity_id,
-                    state:  e.state,
-                    domain: domain
+                    id: e.entity_id,
+                    name: e.attributes.friendly_name || e.entity_id,
+                    state: e.state,
+                    domain: d
                 };
                 ordered.push(e.entity_id);
             }
         }
-
-        var hadSaved = loadSavedLayout();
-        if (!hadSaved) {
+        var had = loadSavedLayout();
+        if (!had) {
             initLayout(ordered);
         } else {
-            /* ensure any new entities get appended to empty slots */
-            var inLayout = {};
-            for (var j = 0; j < layout.length; j++) {
-                if (layout[j]) inLayout[layout[j]] = true;
-            }
+            var inL = {};
+            for (var j = 0; j < layout.length; j++) { if (layout[j]) inL[layout[j]] = true; }
             for (var k = 0; k < ordered.length; k++) {
-                if (!inLayout[ordered[k]]) {
-                    /* find first empty slot */
+                if (!inL[ordered[k]]) {
                     for (var s = 0; s < layout.length; s++) {
                         if (!layout[s]) { layout[s] = ordered[k]; break; }
                     }
                 }
             }
         }
-
         render();
     };
-
     xhr.send();
 }
 
-/* ============================================================
-   SYNC STATES
-============================================================ */
+/* ---- SYNC ---- */
 function syncStates() {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", HA_URL + "/api/states", true);
     xhr.setRequestHeader("Authorization", "Bearer " + HA_TOKEN);
-
     xhr.onreadystatechange = function () {
         if (xhr.readyState !== 4 || xhr.status !== 200) return;
         var data = JSON.parse(xhr.responseText);
@@ -405,27 +317,19 @@ function syncStates() {
         }
         updateUI();
     };
-
     xhr.send();
 }
 
-/* ============================================================
-   RENDER — full rebuild
-============================================================ */
+/* ---- RENDER ---- */
 function render() {
     var gridEl = document.getElementById("grid");
-
-    /* column template */
     gridEl.style.gridTemplateColumns = "repeat(" + COLS + ", 1fr)";
 
-    /* compute slot height to fill available space */
-    var headerH  = document.querySelector("header").offsetHeight;
-    var presetH  = editMode ? (document.getElementById("preset-bar").offsetHeight + 8) : 0;
-    var bodyPad  = 24; /* 12px top + 12px bottom */
+    var headerH  = 36 + 10 + 10; /* header height + top padding + margin-bottom */
     var gapTotal = (ROWS - 1) * 8;
-    var available = window.innerHeight - headerH - presetH - bodyPad - 16;
+    var available = window.innerHeight - headerH;
     var slotH = Math.floor((available - gapTotal) / ROWS);
-    slotH = Math.max(slotH, 70);
+    if (slotH < 60) slotH = 60;
 
     gridEl.innerHTML = "";
     var frag = document.createDocumentFragment();
@@ -440,7 +344,7 @@ function render() {
         var eid = layout[i];
 
         if (eid && entities[eid]) {
-            var e = entities[eid];
+            var e    = entities[eid];
             var isOn = e.state === "on";
 
             var card = document.createElement("div");
@@ -461,14 +365,11 @@ function render() {
             }
 
             slotEl.appendChild(card);
-        } else {
-            /* empty slot */
-            if (editMode) {
-                var plus = document.createElement("div");
-                plus.className = "slot-empty";
-                plus.textContent = "+";
-                slotEl.appendChild(plus);
-            }
+        } else if (editMode) {
+            var plus = document.createElement("div");
+            plus.className = "empty-plus";
+            plus.textContent = "+";
+            slotEl.appendChild(plus);
         }
 
         if (editMode) {
@@ -483,9 +384,7 @@ function render() {
     gridEl.appendChild(frag);
 }
 
-/* ============================================================
-   PATCH UI (no full rebuild — just state changes)
-============================================================ */
+/* ---- PATCH UI — no rebuild ---- */
 function updateUI() {
     var slots = document.querySelectorAll(".slot");
     for (var i = 0; i < slots.length; i++) {
@@ -494,63 +393,59 @@ function updateUI() {
         var eid = card.getAttribute("data-entity");
         if (!entities[eid]) continue;
         var isOn = entities[eid].state === "on";
-        if (isOn) {
-            card.classList.add("on");
-        } else {
-            card.classList.remove("on");
-        }
-        var stateEl = card.querySelector(".card-state");
-        if (stateEl) stateEl.textContent = isOn ? "ON" : "OFF";
+        if (isOn) { card.classList.add("on"); } else { card.classList.remove("on"); }
+        var st = card.querySelector(".card-state");
+        if (st) st.textContent = isOn ? "ON" : "OFF";
     }
 }
 
-/* ============================================================
-   TOGGLE ENTITY
-============================================================ */
+/* ---- TOGGLE ENTITY ---- */
 function onCardClick(ev) {
     var card = ev.currentTarget;
     var eid  = card.getAttribute("data-entity");
     if (!entities[eid]) return;
-
     var isOn = entities[eid].state === "on";
     entities[eid].state = isOn ? "off" : "on";
-
-    /* optimistic UI */
-    if (isOn) {
-        card.classList.remove("on");
-        card.querySelector(".card-state").textContent = "OFF";
-    } else {
-        card.classList.add("on");
-        card.querySelector(".card-state").textContent = "ON";
-    }
-
-    var domain = entities[eid].domain;
+    if (isOn) { card.classList.remove("on"); } else { card.classList.add("on"); }
+    var st = card.querySelector(".card-state");
+    if (st) st.textContent = isOn ? "OFF" : "ON";
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", HA_URL + "/api/services/" + domain + "/toggle", true);
+    xhr.open("POST", HA_URL + "/api/services/" + entities[eid].domain + "/toggle", true);
     xhr.setRequestHeader("Authorization", "Bearer " + HA_TOKEN);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.send(JSON.stringify({ entity_id: eid }));
 }
 
-/* ============================================================
-   DRAG AND DROP
-============================================================ */
+/* ---- EDIT MODE ---- */
+function toggleEdit() {
+    editMode = !editMode;
+    var btn = document.getElementById("editBtn");
+    var sel = document.getElementById("gridSelector");
+    if (editMode) {
+        btn.textContent = "Lock Layout";
+        btn.classList.add("active");
+        sel.classList.add("open");
+    } else {
+        btn.textContent = "Edit Layout";
+        btn.classList.remove("active");
+        sel.classList.remove("open");
+        saveLayout();
+    }
+    render();
+}
+
+/* ---- DRAG ---- */
 function onDragStart(ev) {
-    var slotEl = ev.currentTarget.closest(".slot");
-    dragSrcSlot = parseInt(slotEl.getAttribute("data-slot"));
+    dragSrcSlot = parseInt(ev.currentTarget.closest(".slot").getAttribute("data-slot"));
     ev.currentTarget.classList.add("dragging");
     ev.dataTransfer.effectAllowed = "move";
-    /* required for Firefox */
     ev.dataTransfer.setData("text/plain", dragSrcSlot);
 }
 
 function onDragEnd(ev) {
     ev.currentTarget.classList.remove("dragging");
-    /* clear any leftover drag-over highlights */
-    var slots = document.querySelectorAll(".slot.drag-over");
-    for (var i = 0; i < slots.length; i++) {
-        slots[i].classList.remove("drag-over");
-    }
+    var all = document.querySelectorAll(".slot.drag-over");
+    for (var i = 0; i < all.length; i++) all[i].classList.remove("drag-over");
 }
 
 function onDragOver(ev) {
@@ -566,86 +461,42 @@ function onDragLeave() {
 function onDrop(ev) {
     ev.preventDefault();
     this.classList.remove("drag-over");
-
-    var destSlot = parseInt(this.getAttribute("data-slot"));
-    if (dragSrcSlot === null || dragSrcSlot === destSlot) return;
-
-    /* swap */
-    var temp          = layout[destSlot];
-    layout[destSlot]  = layout[dragSrcSlot];
-    layout[dragSrcSlot] = temp;
-
+    var dest = parseInt(this.getAttribute("data-slot"));
+    if (dragSrcSlot === null || dragSrcSlot === dest) return;
+    var tmp = layout[dest];
+    layout[dest] = layout[dragSrcSlot];
+    layout[dragSrcSlot] = tmp;
     dragSrcSlot = null;
     saveLayout();
     render();
 }
 
-/* ============================================================
-   EDIT MODE TOGGLE
-============================================================ */
-function toggleEdit() {
-    editMode = !editMode;
-
-    var btn = document.getElementById("editBtn");
-    btn.textContent = editMode ? "Lock Layout" : "Edit Layout";
-    if (editMode) {
-        btn.classList.add("locked");
-    } else {
-        btn.classList.remove("locked");
-        saveLayout();
-    }
-
-    var bar = document.getElementById("preset-bar");
-    if (editMode) {
-        bar.classList.add("visible");
-    } else {
-        bar.classList.remove("visible");
-    }
-
-    render();
-}
-
-/* ============================================================
-   GRID PRESET
-============================================================ */
+/* ---- GRID PRESET ---- */
 function setGrid(cols, rows) {
-    COLS = cols;
-    ROWS = rows;
-    document.getElementById("grid-label").textContent = cols + "×" + rows;
-    updatePresetButtons();
-
-    /* try to restore saved layout for this grid size */
+    COLS = cols; ROWS = rows;
+    gridButtonUpdater();
     var had = false;
     try {
         var l = localStorage.getItem("ha_layout_" + COLS + "x" + ROWS);
         if (l) { layout = JSON.parse(l); had = true; }
     } catch(e) {}
-
-    if (!had) {
-        /* build fresh layout from currently known entities */
-        var ids = Object.keys(entities);
-        initLayout(ids);
-    }
-
+    if (!had) { initLayout(Object.keys(entities)); }
     render();
 }
 
-function updatePresetButtons() {
-    var btns = document.querySelectorAll(".preset-btn");
-    var target = COLS + "×" + ROWS;
+function gridButtonUpdater() {
+    var target = COLS + "x" + ROWS;
+    var btns = document.querySelectorAll(".gbtn");
     for (var i = 0; i < btns.length; i++) {
         if (btns[i].textContent === target) {
-            btns[i].classList.add("selected");
+            btns[i].classList.add("sel");
         } else {
-            btns[i].classList.remove("selected");
+            btns[i].classList.remove("sel");
         }
     }
 }
 
-/* recompute slot heights on resize */
-window.addEventListener("resize", function () {
-    render();
-});
+window.addEventListener("resize", function () { render(); });
 
 </script>
 </body>
