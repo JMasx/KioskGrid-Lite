@@ -3,6 +3,9 @@
 A lightweight, grid-based kiosk interface designed for extremely low-end Android devices, specifically targeting what I had laying around, an **Android 4.0 (Ice Cream Sandwich)** running on the **Amazon Kindle Fire HD 8.9" 2nd Gen (2012)**.
 
 This project is a very ambitious experiment in building a somewhat **modern-feeling home automation dashboard under VERY archaic browser constraints**.
+<img width="1898" height="943" alt="image" src="https://github.com/user-attachments/assets/958f52e5-f9a6-497c-be78-3451248e12eb" />
+
+
 
 ---
 
