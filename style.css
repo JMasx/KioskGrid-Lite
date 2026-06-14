@@ -1,0 +1,186 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #0b0d10;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    padding: 12px;
+}
+
+/* ---- HEADER ---- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 36px;
+    margin-bottom: 10px;
+}
+
+.header-left {
+    font-size: 13px;
+    color: #3a4560;
+    white-space: nowrap;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* ---- GRID PRESET STRIP ---- */
+.grid-selector {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    transition: max-width 0.2s ease, opacity 0.15s ease;
+    flex-shrink: 1;
+    margin-right: 0;
+    transition: max-width 0.2s ease, opacity 0.15s ease, margin-right 0.2s ease;
+}
+
+.grid-selector.open {
+    max-width: 400px;
+    opacity: 1;
+    margin-right: 8px;
+}
+
+.gbtn {
+    background: #111622;
+    border: 1px solid #1f293d;
+    color: #555;
+    padding: 4px 9px;
+    border-radius: 6px;
+    font-size: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.gbtn.sel {
+    border-color: #10b981;
+    color: #10b981;
+}
+
+/* ---- HEADER BUTTON ---- */
+.hbtn {
+    background: #111622;
+    border: 1px solid #1f293d;
+    color: #555;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.hbtn.active {
+    border-color: #10b981;
+    color: #10b981;
+}
+
+/* ---- GRID ---- */
+#grid {
+    display: grid;
+    gap: 8px;
+}
+
+/* ---- SLOT ---- */
+.slot {
+    border-radius: 12px;
+    position: relative;
+}
+
+.slot.drag-over {
+    background: #0a1a12;
+}
+
+/* ---- CARD ---- */
+.card {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #111622;
+    border-radius: 12px;
+    border: 1px solid #1f293d;
+    padding: 10px 10px 10px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    overflow: hidden;
+}
+
+/* status pip — top-right corner */
+.card-pip {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #1f293d;
+}
+
+.card.on {
+    border-color: #10b981;
+}
+
+.card.on .card-pip {
+    background: #10b981;
+}
+
+.card.draggable {
+    cursor: grab;
+    border-style: dashed;
+}
+
+.card.dragging {
+    opacity: 0.35;
+}
+
+/* ---- CARD TEXT ---- */
+.card-name {
+    font-size: 11px;
+    color: #556;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.card.on .card-name {
+    color: #ccc;
+}
+
+.card-state {
+    font-size: 10px;
+    color: #252d3e;
+}
+
+.card.on .card-state {
+    color: #10b981;
+}
+
+/* ---- EMPTY SLOT (edit mode) ---- */
+.empty-plus {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    color: #1a2030;
+    pointer-events: none;
+}
