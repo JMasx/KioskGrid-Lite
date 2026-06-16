@@ -22,7 +22,7 @@ try {
 
 
 var SCREEN_W  = 1920;
-var SCREEN_H  = 1080;   /* conservative off 1200
+var SCREEN_H  = 1080;   /* conservative off 1200 */
 var HEADER_H  = 60;
 var PAD       = 10;     /* padding*/
 var GAP       = 8;      /* gap between grid's cells*/
