@@ -1,18 +1,117 @@
-var HA_URL   = (typeof HA_CONFIG !== "undefined") ? HA_CONFIG.url   : "";
-var HA_TOKEN = (typeof HA_CONFIG !== "undefined") ? HA_CONFIG.token : "";
+/* =========================================================
+   app.js  —  HA Kiosk
+   Target: Kindle HD 2nd gen (1920×1200), Android 4 WebView
+   
+   Key constraints:
+   - No CSS Grid (not in Android 4 WebKit)
+   - No classList (buggy on Android 4)
+   - No const/let/arrow functions (ES3/5 only)
+   - No vh units (broken on Android 4 WebView)
+   - Dimensions hard-coded to 1920×1200 with known chrome
+     offsets, so layout is pixel-perfect without DOM measuring
+========================================================= */
+
+var HA_URL   = "";
+var HA_TOKEN = "";
+try {
+    if (typeof HA_CONFIG !== "undefined") {
+        HA_URL   = HA_CONFIG.url   || "";
+        HA_TOKEN = HA_CONFIG.token || "";
+    }
+} catch(e) {}
+
+/* ---- DISPLAY CONSTANTS ---- */
+/* Kindle HD 2nd gen: 1920×1200 physical pixels.
+   Android status bar ~40px, navigation bar ~48px.
+   Browser toolbar (Silk) ~56px top.
+   Usable area portrait: 1920 wide, ~1056 tall.
+   We use conservative values — better to leave a gap
+   than to clip. Adjust SCREEN_H if content is clipped. */
+var SCREEN_W  = 1920;
+var SCREEN_H  = 1080;   /* conservative: 1200 - status - nav - toolbar */
+var HEADER_H  = 60;
+var PAD       = 10;     /* padding around grid wrap */
+var GAP       = 8;      /* gap between cells (matches cellspacing) */
 
 var COLS = 4;
 var ROWS = 4;
-var editMode = false;
+var editMode    = false;
 var dragSrcSlot = null;
-var layout = [];
-var entities = {};
+var layout      = [];
+var entities    = {};
 
 /* ---- BOOT ---- */
 window.onload = function () {
-    loadEntities();
-    setInterval(syncStates, 5000);
+    applyHardDimensions();
+    if (HA_URL) {
+        loadEntities();
+        setInterval(syncStates, 5000);
+    } else {
+        loadFakeEntities();
+    }
 };
+
+/* ---- HARD DIMENSION LOCK ----
+   Instead of measuring DOM (unreliable on old WebKit),
+   we calculate everything from our known screen constants. */
+function applyHardDimensions() {
+    var body = document.body;
+    body.style.width  = SCREEN_W + "px";
+    body.style.height = SCREEN_H + "px";
+
+    var hdr = document.getElementById("header");
+    if (hdr) {
+        hdr.style.width  = SCREEN_W + "px";
+        hdr.style.height = HEADER_H + "px";
+    }
+
+    var wrap = document.getElementById("gridWrap");
+    if (wrap) {
+        var wrapH = SCREEN_H - HEADER_H - PAD;
+        var wrapW = SCREEN_W;
+        wrap.style.width   = wrapW + "px";
+        wrap.style.height  = wrapH + "px";
+        wrap.style.top     = HEADER_H + "px";
+        wrap.style.left    = "0px";
+    }
+}
+
+function getGridDimensions() {
+    /* Available pixel area for the table itself (inside padding) */
+    var availW = SCREEN_W - (PAD * 2);
+    var availH = SCREEN_H - HEADER_H - PAD - PAD;
+
+    /* Gaps: cellspacing applies between AND around cells in a table,
+       so total gap columns = COLS+1, rows = ROWS+1 */
+    var cellW = Math.floor((availW - GAP * (COLS + 1)) / COLS);
+    var cellH = Math.floor((availH - GAP * (ROWS + 1)) / ROWS);
+
+    if (cellW < 60) cellW = 60;
+    if (cellH < 60) cellH = 60;
+
+    return { cellW: cellW, cellH: cellH };
+}
+
+/* ---- FAKE ENTITIES FOR OFFLINE TESTING ---- */
+function loadFakeEntities() {
+    var names = [
+        "Living Room","Kitchen","Bedroom","Bathroom",
+        "Office","Hallway","Porch","Garden",
+        "TV","Fan","Heater","AC",
+        "Coffee Maker","Dishwasher","Washer","Dryer"
+    ];
+    var ordered = [];
+    for (var i = 0; i < names.length; i++) {
+        var id = "light.entity_" + i;
+        entities[id] = { id: id, name: names[i],
+                         state: (i % 3 === 0) ? "on" : "off",
+                         domain: "light" };
+        ordered.push(id);
+    }
+    var had = loadSavedLayout();
+    if (!had) initLayout(ordered);
+    render();
+}
 
 /* ---- LAYOUT PERSISTENCE ---- */
 function initLayout(ids) {
@@ -40,10 +139,7 @@ function loadSavedLayout() {
             updateGridBtns();
         }
         var l = localStorage.getItem("ha_layout_" + COLS + "x" + ROWS);
-        if (l) {
-            layout = JSON.parse(l);
-            return true;
-        }
+        if (l) { layout = JSON.parse(l); return true; }
     } catch (e) {}
     return false;
 }
@@ -55,7 +151,8 @@ function loadEntities() {
     xhr.setRequestHeader("Authorization", "Bearer " + HA_TOKEN);
     xhr.onreadystatechange = function () {
         if (xhr.readyState !== 4 || xhr.status !== 200) return;
-        var data = JSON.parse(xhr.responseText);
+        var data;
+        try { data = JSON.parse(xhr.responseText); } catch(e) { return; }
         var ordered = [];
         for (var i = 0; i < data.length; i++) {
             var e = data[i];
@@ -74,7 +171,6 @@ function loadEntities() {
         if (!had) {
             initLayout(ordered);
         } else {
-            /* slot in any new entities not yet in the saved layout */
             var inLayout = {};
             for (var j = 0; j < layout.length; j++) {
                 if (layout[j]) inLayout[layout[j]] = true;
@@ -99,7 +195,8 @@ function syncStates() {
     xhr.setRequestHeader("Authorization", "Bearer " + HA_TOKEN);
     xhr.onreadystatechange = function () {
         if (xhr.readyState !== 4 || xhr.status !== 200) return;
-        var data = JSON.parse(xhr.responseText);
+        var data;
+        try { data = JSON.parse(xhr.responseText); } catch(e) { return; }
         for (var i = 0; i < data.length; i++) {
             if (entities[data[i].entity_id]) {
                 entities[data[i].entity_id].state = data[i].state;
@@ -110,47 +207,52 @@ function syncStates() {
     xhr.send();
 }
 
-/* ---- FULL RENDER ---- */
+/* ---- RENDER ---- */
 function render() {
-    var gridEl = document.getElementById("grid");
-    gridEl.style.gridTemplateColumns = "repeat(" + COLS + ", 1fr)";
+    applyHardDimensions();
 
-    var headerH  = 36 + 10 + 10;
-    var gapTotal = (ROWS - 1) * 8;
-    var slotH    = Math.floor((window.innerHeight - headerH - gapTotal) / ROWS);
-    if (slotH < 60) slotH = 60;
+    var dims  = getGridDimensions();
+    var cellW = dims.cellW;
+    var cellH = dims.cellH;
 
-    gridEl.innerHTML = "";
-    var frag = document.createDocumentFragment();
-    var total = COLS * ROWS;
+    var tbl = document.getElementById("grid");
+    tbl.innerHTML = "";
+    /* Set explicit table size so it never overflows */
+    tbl.style.width  = (cellW * COLS + GAP * (COLS + 1)) + "px";
+    tbl.style.height = (cellH * ROWS + GAP * (ROWS + 1)) + "px";
 
-    for (var i = 0; i < total; i++) {
-        var slotEl = document.createElement("div");
-        slotEl.className = "slot";
-        slotEl.style.height = slotH + "px";
-        slotEl.setAttribute("data-slot", i);
+    var slotIdx = 0;
+    for (var r = 0; r < ROWS; r++) {
+        var tr = document.createElement("tr");
+        for (var c = 0; c < COLS; c++) {
+            var td = document.createElement("td");
+            td.className = "slot";
+            td.setAttribute("data-slot", slotIdx);
+            td.style.width   = cellW + "px";
+            td.style.height  = cellH + "px";
+            td.style.padding = "0";
 
-        var eid = layout[i];
+            var eid = layout[slotIdx];
+            if (eid && entities[eid]) {
+                td.appendChild(buildCard(eid));
+            } else if (editMode) {
+                var plus = document.createElement("div");
+                plus.className = "empty-plus";
+                plus.innerHTML = "+";
+                td.appendChild(plus);
+            }
 
-        if (eid && entities[eid]) {
-            slotEl.appendChild(buildCard(eid));
-        } else if (editMode) {
-            var plus = document.createElement("div");
-            plus.className = "empty-plus";
-            plus.textContent = "+";
-            slotEl.appendChild(plus);
+            if (editMode) {
+                addEvent(td, "dragover",  onDragOver);
+                addEvent(td, "dragleave", onDragLeave);
+                addEvent(td, "drop",      onDrop);
+            }
+
+            tr.appendChild(td);
+            slotIdx++;
         }
-
-        if (editMode) {
-            slotEl.addEventListener("dragover",  onDragOver);
-            slotEl.addEventListener("dragleave", onDragLeave);
-            slotEl.addEventListener("drop",      onDrop);
-        }
-
-        frag.appendChild(slotEl);
+        tbl.appendChild(tr);
     }
-
-    gridEl.appendChild(frag);
 }
 
 function buildCard(eid) {
@@ -158,7 +260,7 @@ function buildCard(eid) {
     var isOn = e.state === "on";
 
     var card = document.createElement("div");
-    card.className = "card" + (isOn ? " on" : "") + (editMode ? " draggable" : "");
+    card.className = "card" + (isOn ? " card-on" : "") + (editMode ? " card-drag" : "");
     card.setAttribute("data-entity", eid);
 
     var pip = document.createElement("div");
@@ -166,55 +268,74 @@ function buildCard(eid) {
 
     var name = document.createElement("div");
     name.className = "card-name";
-    name.textContent = e.name;
+    name.innerHTML = e.name;
 
-    var state = document.createElement("div");
-    state.className = "card-state";
-    state.textContent = isOn ? "ON" : "OFF";
+    var st = document.createElement("div");
+    st.className = "card-state";
+    st.innerHTML = isOn ? "ON" : "OFF";
 
     card.appendChild(pip);
     card.appendChild(name);
-    card.appendChild(state);
+    card.appendChild(st);
 
     if (editMode) {
         card.setAttribute("draggable", "true");
-        card.addEventListener("dragstart", onDragStart);
-        card.addEventListener("dragend",   onDragEnd);
+        addEvent(card, "dragstart", onDragStart);
+        addEvent(card, "dragend",   onDragEnd);
     } else {
-        card.addEventListener("click", onCardClick);
+        addEvent(card, "click", onCardClick);
     }
 
     return card;
 }
 
+/* ---- CLASS HELPERS (no classList — buggy on Android 4) ---- */
+function hasClass(el, cls) {
+    return (" " + el.className + " ").indexOf(" " + cls + " ") !== -1;
+}
+function addClass(el, cls) {
+    if (!hasClass(el, cls)) el.className = (el.className ? el.className + " " : "") + cls;
+}
+function removeClass(el, cls) {
+    el.className = (" " + el.className + " ").replace(" " + cls + " ", " ").replace(/^\s+|\s+$/g, "");
+}
+
+/* ---- EVENT HELPER ---- */
+function addEvent(el, type, fn) {
+    if (el.addEventListener) { el.addEventListener(type, fn, false); }
+    else if (el.attachEvent) { el.attachEvent("on" + type, fn); }
+}
+
 /* ---- PATCH UI WITHOUT FULL REBUILD ---- */
 function updateUI() {
-    var cards = document.querySelectorAll(".card");
+    var cards = document.querySelectorAll ? document.querySelectorAll(".card") : [];
     for (var i = 0; i < cards.length; i++) {
         var card = cards[i];
         var eid  = card.getAttribute("data-entity");
         if (!entities[eid]) continue;
         var isOn = entities[eid].state === "on";
-        if (isOn) { card.classList.add("on"); } else { card.classList.remove("on"); }
-        var st = card.querySelector(".card-state");
-        if (st) st.textContent = isOn ? "ON" : "OFF";
+        if (isOn) { addClass(card, "card-on"); } else { removeClass(card, "card-on"); }
+        var st = card.querySelector ? card.querySelector(".card-state") : null;
+        if (st) st.innerHTML = isOn ? "ON" : "OFF";
     }
 }
 
 /* ---- TOGGLE ENTITY ---- */
 function onCardClick(ev) {
-    var card = ev.currentTarget;
-    var eid  = card.getAttribute("data-entity");
+    ev = ev || window.event;
+    var card = ev.currentTarget || ev.srcElement;
+    while (card && !card.getAttribute("data-entity")) card = card.parentNode;
+    if (!card) return;
+    var eid = card.getAttribute("data-entity");
     if (!entities[eid]) return;
 
     var isOn = entities[eid].state === "on";
     entities[eid].state = isOn ? "off" : "on";
+    if (isOn) { removeClass(card, "card-on"); } else { addClass(card, "card-on"); }
+    var st = card.querySelector ? card.querySelector(".card-state") : null;
+    if (st) st.innerHTML = isOn ? "OFF" : "ON";
 
-    if (isOn) { card.classList.remove("on"); } else { card.classList.add("on"); }
-
-    var st = card.querySelector(".card-state");
-    if (st) st.textContent = isOn ? "OFF" : "ON";
-
+    if (!HA_URL) return;
     var xhr = new XMLHttpRequest();
     xhr.open("POST", HA_URL + "/api/services/" + entities[eid].domain + "/toggle", true);
     xhr.setRequestHeader("Authorization", "Bearer " + HA_TOKEN);
@@ -228,48 +349,65 @@ function toggleEdit() {
     var btn = document.getElementById("editBtn");
     var sel = document.getElementById("gridSelector");
     if (editMode) {
-        btn.textContent = "Lock Layout";
-        btn.classList.add("active");
-        sel.classList.add("open");
+        btn.innerHTML = "Lock Layout";
+        addClass(btn, "active");
+        sel.className = "grid-selector open";
     } else {
-        btn.textContent = "Edit Layout";
-        btn.classList.remove("active");
-        sel.classList.remove("open");
+        btn.innerHTML = "Edit Layout";
+        removeClass(btn, "active");
+        sel.className = "grid-selector";
         saveLayout();
     }
     render();
 }
 
 /* ---- DRAG AND DROP ---- */
+function getSlotEl(el) {
+    while (el && el.getAttribute && !el.getAttribute("data-slot")) el = el.parentNode;
+    return el;
+}
+
 function onDragStart(ev) {
-    dragSrcSlot = parseInt(ev.currentTarget.closest(".slot").getAttribute("data-slot"));
-    ev.currentTarget.classList.add("dragging");
-    ev.dataTransfer.effectAllowed = "move";
-    ev.dataTransfer.setData("text/plain", dragSrcSlot);
+    ev = ev || window.event;
+    var card = ev.currentTarget || ev.srcElement;
+    var td   = getSlotEl(card.parentNode || card);
+    if (td) dragSrcSlot = parseInt(td.getAttribute("data-slot"));
+    addClass(card, "card-dragging");
+    if (ev.dataTransfer) {
+        ev.dataTransfer.effectAllowed = "move";
+        ev.dataTransfer.setData("text/plain", "" + dragSrcSlot);
+    }
 }
 
 function onDragEnd(ev) {
-    ev.currentTarget.classList.remove("dragging");
-    var all = document.querySelectorAll(".slot.drag-over");
-    for (var i = 0; i < all.length; i++) all[i].classList.remove("drag-over");
+    ev = ev || window.event;
+    var card = ev.currentTarget || ev.srcElement;
+    removeClass(card, "card-dragging");
+    var slots = document.querySelectorAll ? document.querySelectorAll(".slot") : [];
+    for (var i = 0; i < slots.length; i++) removeClass(slots[i], "drag-over");
 }
 
 function onDragOver(ev) {
-    ev.preventDefault();
-    ev.dataTransfer.dropEffect = "move";
-    this.classList.add("drag-over");
+    ev = ev || window.event;
+    if (ev.preventDefault) ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = "move";
+    addClass(ev.currentTarget || ev.srcElement, "drag-over");
 }
 
-function onDragLeave() {
-    this.classList.remove("drag-over");
+function onDragLeave(ev) {
+    ev = ev || window.event;
+    removeClass(ev.currentTarget || ev.srcElement, "drag-over");
 }
 
 function onDrop(ev) {
-    ev.preventDefault();
-    this.classList.remove("drag-over");
-    var dest = parseInt(this.getAttribute("data-slot"));
-    if (dragSrcSlot === null || dragSrcSlot === dest) return;
-    var tmp = layout[dest];
+    ev = ev || window.event;
+    if (ev.preventDefault) ev.preventDefault();
+    if (ev.stopPropagation) ev.stopPropagation();
+    var td   = ev.currentTarget || ev.srcElement;
+    removeClass(td, "drag-over");
+    var dest = parseInt(td.getAttribute("data-slot"));
+    if (dragSrcSlot === null || isNaN(dest) || dragSrcSlot === dest) return;
+    var tmp             = layout[dest];
     layout[dest]        = layout[dragSrcSlot];
     layout[dragSrcSlot] = tmp;
     dragSrcSlot = null;
@@ -287,20 +425,17 @@ function setGrid(cols, rows) {
         var l = localStorage.getItem("ha_layout_" + COLS + "x" + ROWS);
         if (l) { layout = JSON.parse(l); had = true; }
     } catch (e) {}
-    if (!had) { initLayout(Object.keys(entities)); }
+    if (!had) initLayout(Object.keys(entities));
     render();
 }
 
 function updateGridBtns() {
     var target = COLS + "x" + ROWS;
-    var btns = document.querySelectorAll(".gbtn");
+    var btns = document.querySelectorAll ? document.querySelectorAll(".gbtn") : [];
     for (var i = 0; i < btns.length; i++) {
-        if (btns[i].textContent === target) {
-            btns[i].classList.add("sel");
-        } else {
-            btns[i].classList.remove("sel");
-        }
+        var txt = btns[i].innerHTML || btns[i].textContent || "";
+        btns[i].className = (txt === target) ? "gbtn sel" : "gbtn";
     }
 }
 
-window.addEventListener("resize", function () { render(); });
+window.onresize = function () { render(); };

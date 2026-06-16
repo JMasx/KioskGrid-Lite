@@ -1,88 +1,68 @@
 * {
+    -webkit-box-sizing: border-box;
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
-body {
+html, body {
     background: #0b0d10;
     color: #fff;
     font-family: Arial, sans-serif;
-    height: 100vh;
+
+    position: fixed; 
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
-    padding: 12px;
+    /* Hard-pin to Kindle HD resolution — JS will take over sizing */
+
 }
 
-/* ---- HEADER ---- */
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 36px;
-    margin-bottom: 10px;
+/* ===================== HEADER =====================
+   Float-based — no flexbox needed, works on Android 4.
+   Fixed 60px tall. Edit button floats RIGHT so it's
+   always on-screen regardless of grid selector state.
+================================================== */
+#header {
+    position: relative;
+    width: device-width;
+    height: device-height;
+    line-height: 60px;
+    padding: 0 14px;
+    background: #0b0d10;
+    overflow: hidden;
 }
 
 .header-left {
-    font-size: 13px;
+    float: left;
+    font-size: 26px;
     color: #3a4560;
+    margin-right: 16px;
     white-space: nowrap;
-    margin-right: 10px;
-    flex-shrink: 0;
 }
 
-.header-right {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-/* ---- GRID PRESET STRIP ---- */
-.grid-selector {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-    overflow: hidden;
-    max-width: 0;
-    opacity: 0;
-    transition: max-width 0.2s ease, opacity 0.15s ease;
-    flex-shrink: 1;
-    margin-right: 0;
-    transition: max-width 0.2s ease, opacity 0.15s ease, margin-right 0.2s ease;
-}
-
-.grid-selector.open {
-    max-width: 400px;
-    opacity: 1;
-    margin-right: 8px;
-}
-
-.gbtn {
-    background: #111622;
-    border: 1px solid #1f293d;
-    color: #555;
-    padding: 4px 9px;
-    border-radius: 6px;
-    font-size: 10px;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.gbtn.sel {
-    border-color: #10b981;
-    color: #10b981;
-}
-
-/* ---- HEADER BUTTON ---- */
+/* Edit / Lock button — floats RIGHT so it's always visible */
 .hbtn {
+    float: right;
+    display: inline-block;
     background: #111622;
     border: 1px solid #1f293d;
-    color: #555;
-    padding: 5px 10px;
-    border-radius: 8px;
-    font-size: 11px;
+    color: #888;
+    padding: 0 24px;
+    height: 44px;
+    line-height: 44px;
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
+    font-size: 22px;
     cursor: pointer;
     white-space: nowrap;
+    margin-top: 8px;
+    margin-left: 10px;
+    font-size: 24px;
 }
 
 .hbtn.active {
@@ -90,97 +70,162 @@ header {
     color: #10b981;
 }
 
-/* ---- GRID ---- */
-#grid {
-    display: grid;
-    gap: 8px;
+/* Grid preset strip — hidden until edit mode */
+.grid-selector {
+    display: none;
+    overflow: hidden;
+    /* floats left naturally after .header-left */
 }
 
-/* ---- SLOT ---- */
+.grid-selector.open {
+    display: inline-block;
+}
+
+.gbtn {
+    display: inline-block;
+    background: #111622;
+    border: 1px solid #1f293d;
+    color: #888;
+    padding: 0 18px;
+    height: 44px;
+    line-height: 44px;
+    -webkit-border-radius: 8px;
+    border-radius: 8px;
+    font-size: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    margin-right: 6px;
+    margin-top: 8px;
+    vertical-align: top;
+}
+
+.gbtn.sel {
+    border-color: #10b981;
+    color: #10b981;
+}
+
+/* ===================== GRID WRAP =====================
+   Sits below the 60px header + 10px gap.
+   Hard height = 1200 - 60 - 10 (bottom pad) - 10 (top pad) = 1120px
+   JS will recalculate this on load and resize anyway,
+   but having a sensible CSS default avoids a flash.
+====================================================== */
+#gridWrap {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    width: device-width;
+    height: 1120px;
+    padding: 8px 10px 10px 10px;
+    overflow: hidden;
+}
+
+/* ===================== TABLE =====================
+   CSS Grid not supported on Android 4 WebView.
+   table-layout:fixed + explicit td widths/heights
+   in JS gives us pixel-perfect grid control.
+================================================== */
+#grid {
+    table-layout: fixed;
+    border-collapse: separate;
+    /* width/height set explicitly by JS */
+}
+
+/* ===================== SLOT (TD) ===================== */
 .slot {
-    border-radius: 12px;
     position: relative;
+    padding: 0;
+    vertical-align: top;
+    -webkit-border-radius: 12px;
+    border-radius: 12px;
 }
 
 .slot.drag-over {
     background: #0a1a12;
 }
 
-/* ---- CARD ---- */
+/* ===================== CARD ===================== */
 .card {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     background: #111622;
+    -webkit-border-radius: 12px;
     border-radius: 12px;
     border: 1px solid #1f293d;
-    padding: 10px 10px 10px 12px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    padding: 14px;
     cursor: pointer;
     -webkit-user-select: none;
     user-select: none;
     overflow: hidden;
 }
 
-/* status pip — top-right corner */
 .card-pip {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 7px;
-    height: 7px;
+    top: 14px;
+    right: 14px;
+    width: 12px;
+    height: 12px;
+    -webkit-border-radius: 50%;
     border-radius: 50%;
     background: #1f293d;
 }
 
-.card.on {
-    border-color: #10b981;
-}
-
-.card.on .card-pip {
-    background: #10b981;
-}
-
-.card.draggable {
-    cursor: grab;
-    border-style: dashed;
-}
-
-.card.dragging {
-    opacity: 0.35;
-}
-
-/* ---- CARD TEXT ---- */
 .card-name {
-    font-size: 11px;
+    position: absolute;
+    bottom: 44px; 
+    left: 14px;
+    right: 14px;
+    font-size: 28px;
     color: #556;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    margin-bottom: 2px;
-}
-
-.card.on .card-name {
-    color: #ccc;
 }
 
 .card-state {
-    font-size: 10px;
+    position: absolute;
+    bottom: 10px;
+    left: 14px;
+    font-size: 26px;
     color: #252d3e;
 }
 
-.card.on .card-state {
+/* ON state */
+.card-on {
+    border-color: #10b981;
+}
+
+.card-on .card-pip {
+    background: #10b981;
+}
+
+.card-on .card-name {
+    color: #ccc;
+}
+
+.card-on .card-state {
     color: #10b981;
 }
 
-/* ---- EMPTY SLOT (edit mode) ---- */
+/* Edit mode */
+.card-drag {
+    cursor: -webkit-grab;
+    cursor: grab;
+    border-style: dashed;
+}
+
+.card-dragging {
+    opacity: 0.35;
+}
+
+/* Empty slot plus sign */
 .empty-plus {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 16px;
+    font-size: 86px;
     color: #1a2030;
     pointer-events: none;
+    margin-left: -8px;
+    margin-top: -16px;
 }

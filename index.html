@@ -2,33 +2,38 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=1920, user-scalable=no, target-densitydpi=device-dpi">
+
 <title>HA Panel</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header>
-    <div class="header-left">KioskGrid Lite</div>
+<div id="header">
+  <span class="header-left">KioskGrid</span>
+  <span id="editBtn" class="hbtn" onclick="toggleEdit()">Edit Layout</span>
+  <span id="gridSelector" class="grid-selector">
+    <span class="gbtn" onclick="setGrid(2,3)">2x3</span>
+    <span class="gbtn" onclick="setGrid(3,2)">3x2</span>
+    <span class="gbtn" onclick="setGrid(3,3)">3x3</span>
+    <span class="gbtn" onclick="setGrid(4,3)">4x3</span>
+    <span class="gbtn sel" onclick="setGrid(4,4)">4x4</span>
+    <span class="gbtn" onclick="setGrid(5,4)">5x4</span>
+    <span class="gbtn" onclick="setGrid(5,5)">5x5</span>
+    <span class="gbtn" onclick="setGrid(6,4)">6x4</span>
+    <span class="gbtn" onclick="setGrid(6,5)">6x5</span>
+  </span>
+</div>
 
-    <div class="grid-selector" id="gridSelector">
-        <button class="gbtn" onclick="setGrid(2,3)">2x3</button>
-        <button class="gbtn" onclick="setGrid(3,3)">3x3</button>
-        <button class="gbtn sel" onclick="setGrid(4,4)">4x4</button>
-        <button class="gbtn" onclick="setGrid(5,4)">5x4</button>
-        <button class="gbtn" onclick="setGrid(5,5)">5x5</button>
-        <button class="gbtn" onclick="setGrid(6,4)">6x4</button>
-        <button class="gbtn" onclick="setGrid(6,5)">6x5</button>
-    </div>
+<div id="gridWrap">
+  <table id="grid" cellspacing="8" cellpadding="0" border="0"></table>
+</div>
 
-    <div class="header-right">
-        <button class="hbtn" id="editBtn" onclick="toggleEdit()">Edit Layout</button>
-    </div>
-</header>
-
-<div id="grid"></div>
-
-<script src="config.js"></script>
+<script>
+var HA_CONFIG = (typeof HA_CONFIG !== "undefined") ? HA_CONFIG : { url: "", token: "" };
+</script>
+<script src="config.js" onerror="void(0)"></script>
 <script src="app.js"></script>
+
 </body>
 </html>
