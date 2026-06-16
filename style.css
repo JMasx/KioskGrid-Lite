@@ -207,11 +207,15 @@ html, body {
     color: #10b981;
 }
 
-/* Edit mode */
+/* Edit mode — touch drag */
 .card-drag {
     cursor: -webkit-grab;
     cursor: grab;
     border-style: dashed;
+    /* Prevent the browser's native touch scroll/pan from
+       hijacking touchmove while the user is dragging a card */
+    -ms-touch-action: none;
+    touch-action: none;
 }
 
 .card-dragging {

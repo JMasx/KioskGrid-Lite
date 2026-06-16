@@ -242,11 +242,8 @@ function render() {
                 td.appendChild(plus);
             }
 
-            if (editMode) {
-                addEvent(td, "dragover",  onDragOver);
-                addEvent(td, "dragleave", onDragLeave);
-                addEvent(td, "drop",      onDrop);
-            }
+            /* Slot TDs need no extra listeners — touch hit-testing
+               is done via elementFromPoint in onTouchMove.          */
 
             tr.appendChild(td);
             slotIdx++;
@@ -279,9 +276,10 @@ function buildCard(eid) {
     card.appendChild(st);
 
     if (editMode) {
-        card.setAttribute("draggable", "true");
-        addEvent(card, "dragstart", onDragStart);
-        addEvent(card, "dragend",   onDragEnd);
+        /* Touch drag — Android 4 WebView does not fire HTML5 drag events */
+        addEvent(card, "touchstart", onTouchStart);
+        addEvent(card, "touchmove",  onTouchMove);
+        addEvent(card, "touchend",   onTouchEnd);
     } else {
         addEvent(card, "click", onCardClick);
     }
@@ -361,57 +359,131 @@ function toggleEdit() {
     render();
 }
 
-/* ---- DRAG AND DROP ---- */
+/* ---- TOUCH DRAG AND DROP ----
+   Android 4 WebView does not support the HTML5 Drag and Drop API
+   (draggable / dragstart / dragover / drop events never fire).
+   We implement the same behaviour using touch events, which ARE
+   fully supported on Android 4 WebKit.
+
+   How it works:
+   - touchstart  → record source slot, clone the card as a floating ghost
+   - touchmove   → move the ghost under the finger; highlight target slot
+                   via elementFromPoint (hide ghost first so it's transparent
+                   to hit-testing, then restore)
+   - touchend    → swap layout entries, remove ghost, re-render
+*/
+
+var touchGhost    = null;   /* floating clone element                  */
+var touchOffsetX  = 0;      /* finger offset inside the card           */
+var touchOffsetY  = 0;
+var touchDestSlot = null;   /* slot index currently under the finger   */
+var lastHighlight = null;   /* TD element highlighted as drop target   */
+
 function getSlotEl(el) {
     while (el && el.getAttribute && !el.getAttribute("data-slot")) el = el.parentNode;
     return el;
 }
 
-function onDragStart(ev) {
+/* --- touch start: begin drag --- */
+function onTouchStart(ev) {
     ev = ev || window.event;
     var card = ev.currentTarget || ev.srcElement;
     var td   = getSlotEl(card.parentNode || card);
-    if (td) dragSrcSlot = parseInt(td.getAttribute("data-slot"));
+    if (!td) return;
+
+    dragSrcSlot   = parseInt(td.getAttribute("data-slot"));
+    touchDestSlot = dragSrcSlot;
+
+    /* Finger position relative to card top-left */
+    var touch = ev.touches[0];
+    var rect  = card.getBoundingClientRect
+                ? card.getBoundingClientRect()
+                : { left: 0, top: 0 };
+    touchOffsetX = touch.clientX - rect.left;
+    touchOffsetY = touch.clientY - rect.top;
+
+    /* Build a ghost clone that floats under the finger */
+    touchGhost = card.cloneNode(true);
+    touchGhost.style.position   = "fixed";
+    touchGhost.style.zIndex     = "9999";
+    touchGhost.style.opacity    = "0.7";
+    touchGhost.style.width      = (rect.right  - rect.left) + "px";
+    touchGhost.style.height     = (rect.bottom - rect.top)  + "px";
+    touchGhost.style.left       = (touch.clientX - touchOffsetX) + "px";
+    touchGhost.style.top        = (touch.clientY - touchOffsetY) + "px";
+    touchGhost.style.pointerEvents = "none";
+    touchGhost.style.margin     = "0";
+    document.body.appendChild(touchGhost);
+
     addClass(card, "card-dragging");
-    if (ev.dataTransfer) {
-        ev.dataTransfer.effectAllowed = "move";
-        ev.dataTransfer.setData("text/plain", "" + dragSrcSlot);
+
+    if (ev.preventDefault) ev.preventDefault();  /* block scroll */
+}
+
+/* --- touch move: track finger, highlight target slot --- */
+function onTouchMove(ev) {
+    ev = ev || window.event;
+    if (!touchGhost) return;
+    if (ev.preventDefault) ev.preventDefault();
+
+    var touch = ev.touches[0];
+    var cx = touch.clientX;
+    var cy = touch.clientY;
+
+    /* Move ghost */
+    touchGhost.style.left = (cx - touchOffsetX) + "px";
+    touchGhost.style.top  = (cy - touchOffsetY) + "px";
+
+    /* Find element under finger (hide ghost so it doesn't block hit test) */
+    touchGhost.style.display = "none";
+    var el = document.elementFromPoint(cx, cy);
+    touchGhost.style.display = "";
+
+    /* Walk up to the nearest slot TD */
+    var td = getSlotEl(el);
+
+    /* Clear previous highlight */
+    if (lastHighlight && lastHighlight !== td) {
+        removeClass(lastHighlight, "drag-over");
+    }
+
+    if (td && td.getAttribute("data-slot") !== null) {
+        touchDestSlot = parseInt(td.getAttribute("data-slot"));
+        if (touchDestSlot !== dragSrcSlot) {
+            addClass(td, "drag-over");
+            lastHighlight = td;
+        }
+    } else {
+        touchDestSlot = null;
+        lastHighlight = null;
     }
 }
 
-function onDragEnd(ev) {
+/* --- touch end: commit swap --- */
+function onTouchEnd(ev) {
     ev = ev || window.event;
-    var card = ev.currentTarget || ev.srcElement;
-    removeClass(card, "card-dragging");
+
+    /* Remove ghost */
+    if (touchGhost && touchGhost.parentNode) {
+        touchGhost.parentNode.removeChild(touchGhost);
+    }
+    touchGhost = null;
+
+    /* Clear highlights */
     var slots = document.querySelectorAll ? document.querySelectorAll(".slot") : [];
     for (var i = 0; i < slots.length; i++) removeClass(slots[i], "drag-over");
-}
 
-function onDragOver(ev) {
-    ev = ev || window.event;
-    if (ev.preventDefault) ev.preventDefault();
-    if (ev.dataTransfer) ev.dataTransfer.dropEffect = "move";
-    addClass(ev.currentTarget || ev.srcElement, "drag-over");
-}
+    /* Perform the swap if we have a valid destination */
+    if (dragSrcSlot !== null && touchDestSlot !== null && touchDestSlot !== dragSrcSlot) {
+        var tmp              = layout[touchDestSlot];
+        layout[touchDestSlot] = layout[dragSrcSlot];
+        layout[dragSrcSlot]  = tmp;
+        saveLayout();
+    }
 
-function onDragLeave(ev) {
-    ev = ev || window.event;
-    removeClass(ev.currentTarget || ev.srcElement, "drag-over");
-}
-
-function onDrop(ev) {
-    ev = ev || window.event;
-    if (ev.preventDefault) ev.preventDefault();
-    if (ev.stopPropagation) ev.stopPropagation();
-    var td   = ev.currentTarget || ev.srcElement;
-    removeClass(td, "drag-over");
-    var dest = parseInt(td.getAttribute("data-slot"));
-    if (dragSrcSlot === null || isNaN(dest) || dragSrcSlot === dest) return;
-    var tmp             = layout[dest];
-    layout[dest]        = layout[dragSrcSlot];
-    layout[dragSrcSlot] = tmp;
-    dragSrcSlot = null;
-    saveLayout();
+    dragSrcSlot   = null;
+    touchDestSlot = null;
+    lastHighlight = null;
     render();
 }
 
