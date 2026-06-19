@@ -18,15 +18,12 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    /* Hard-pin to Kindle HD resolution — JS will take over sizing */
+    /* Hard-pin to Kindle HD resolution, JS will take over sizing */
 
 }
 
-/* ===================== HEADER =====================
-   Float-based — no flexbox needed, works on Android 4.
-   Fixed 60px tall. Edit button floats RIGHT so it's
-   always on-screen regardless of grid selector state.
-================================================== */
+/* Float-based — no flexbox needed, works on Android 4.
+   Fixed 60px tall.*/
 #header {
     position: relative;
     width: device-width;
@@ -45,7 +42,7 @@ html, body {
     white-space: nowrap;
 }
 
-/* Edit / Lock button — floats RIGHT so it's always visible */
+/* Edit / Lock button*/
 .hbtn {
     float: right;
     display: inline-block;
@@ -70,7 +67,7 @@ html, body {
     color: #10b981;
 }
 
-/* Grid preset strip — hidden until edit mode */
+/* Grid preset strip*/
 .grid-selector {
     display: none;
     overflow: hidden;
@@ -104,12 +101,7 @@ html, body {
     color: #10b981;
 }
 
-/* ===================== GRID WRAP =====================
-   Sits below the 60px header + 10px gap.
-   Hard height = 1200 - 60 - 10 (bottom pad) - 10 (top pad) = 1120px
-   JS will recalculate this on load and resize anyway,
-   but having a sensible CSS default avoids a flash.
-====================================================== */
+/* wrap the grid */
 #gridWrap {
     position: absolute;
     top: 60px;
@@ -120,18 +112,14 @@ html, body {
     overflow: hidden;
 }
 
-/* ===================== TABLE =====================
-   CSS Grid not supported on Android 4 WebView.
-   table-layout:fixed + explicit td widths/heights
-   in JS gives us pixel-perfect grid control.
-================================================== */
+/*table-layout SINCE CSS GRID DOESNT EXIST WOW */
 #grid {
     table-layout: fixed;
     border-collapse: separate;
     /* width/height set explicitly by JS */
 }
 
-/* ===================== SLOT (TD) ===================== */
+/* slot on grid*/
 .slot {
     position: relative;
     padding: 0;
@@ -144,7 +132,7 @@ html, body {
     background: #0a1a12;
 }
 
-/* ===================== CARD ===================== */
+/* card in slots*/
 .card {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -190,7 +178,7 @@ html, body {
     color: #252d3e;
 }
 
-/* ON state */
+/* ON state for cards */
 .card-on {
     border-color: #10b981;
 }
@@ -207,13 +195,12 @@ html, body {
     color: #10b981;
 }
 
-/* Edit mode — touch drag */
+/* dragging cards in edit mode */
 .card-drag {
     cursor: -webkit-grab;
     cursor: grab;
     border-style: dashed;
-    /* Prevent the browser's native touch scroll/pan from
-       hijacking touchmove while the user is dragging a card */
+    /* Prevent the browser hijacking touchmove while the user is dragging a card (very real issue i swear) */
     -ms-touch-action: none;
     touch-action: none;
 }
@@ -223,6 +210,7 @@ html, body {
 }
 
 /* Empty slot plus sign */
+/*looks bonita*/
 .empty-plus {
     position: absolute;
     top: 50%;
